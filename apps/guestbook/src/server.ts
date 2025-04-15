@@ -1,10 +1,26 @@
-import { Application, Router } from "@oak/oak";
+import { Application, Router } from "jsr:@oak/oak";
 import { AudioPlayer } from "./speaker.ts";
+import { AudioRecorder } from "./recorder.ts";
+import process from "node:process";
 // import path from "node:path";
 
 const router = new Router();
 
-const audioPlayer = new AudioPlayer();
+const audioPlayer = new AudioPlayer({
+  deviceName:
+    // process.platform === "win32" ? "Microphone (Realtek(R) Audio)" : "hw:1",
+    process.platform === "win32" ? "1" : "hw:1",
+});
+const audioRecorder = new AudioRecorder({
+  deviceName:
+    // process.platform === "win32" ? "Microphone (Realtek(R) Audio)" : "hw:1",
+    process.platform === "win32"
+      ? "External Microphone (Realtek(R) Audio)"
+      : // "Microphone (Realtek(R) Audio)"
+        "hw:1",
+  outputDir: "./recordings",
+});
+
 const sample_audio = `${Deno.cwd()}/audio/audio_sample_mono.wav`;
 router.get("/", (ctx) => {
   console.log("HIT");
@@ -12,19 +28,37 @@ router.get("/", (ctx) => {
 });
 
 router.get("/record/start", async (ctx) => {
-  console.log("record Start");
-  console.log(sample_audio);
-  ctx.response.body = "Starting";
-  await audioPlayer.playFile(sample_audio);
+  const file_output = await audioRecorder.startRecording();
+  ctx.response.body = {
+    type: "recording",
+    file: file_output,
+  };
+});
+
+router.get("/record/list", (ctx) => {
+  const list_devices = AudioRecorder.listDevices();
+  ctx.response.body = {
+    list_devices,
+  };
+});
+
+router.get("/record/stop", async (ctx) => {
+  ctx.response.body = "Stopping";
+  await audioRecorder.stopRecording();
   console.log("record stop");
 });
 
 router.get("/speaker/start", async (ctx) => {
-  console.log("record Start");
-  console.log(sample_audio);
   ctx.response.body = "Starting";
-  await audioPlayer.playFile(sample_audio);
-  console.log("record stop");
+  await audioPlayer.play(sample_audio);
+  console.log("speaker stop");
+});
+
+router.get("/speaker/list", async (ctx) => {
+  const list_devices = await AudioPlayer.listDevices();
+  ctx.response.body = {
+    list_devices,
+  };
 });
 
 const app = new Application();

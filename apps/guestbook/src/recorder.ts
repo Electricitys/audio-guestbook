@@ -1,34 +1,41 @@
-import { PvRecorder } from "@picovoice/pvrecorder-node";
-import * as fs from "fs";
-import * as path from "path";
+import ffmpeg from "npm:fluent-ffmpeg";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { spawnSync } from "node:child_process";
+import process from "node:process";
 
-interface AudioGuestbookOptions {
-  deviceIndex?: number;
+const ffmpegPath =
+  process.env.FFMPEG_PATH || process.platform === "win32"
+    ? "./node_modules/ffmpeg-static/ffmpeg.exe"
+    : "./node_modules/ffmpeg-static/ffmpeg";
+
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+interface AudioRecorderOptions {
+  deviceName?: string; // Optional: e.g., 'hw:1' on Linux or 'Microphone (Realtek Audio)' on Windows
   outputDir?: string;
-  frameLength?: number;
+  duration?: number; // Optional: limit recording duration
 }
 
-export class AudioGuestbook {
-  private deviceIndex: number;
+export class AudioRecorder {
+  private deviceName: string | undefined;
+  private duration: number;
   private outputDir: string;
-  private frameLength: number;
-  private recorder: PvRecorder | null;
   private recording: boolean;
-  private chunks: Buffer[];
   private sessionId: string | null;
+  private ffmpegProcess: ffmpeg.FfmpegCommand | null;
 
   constructor({
-    deviceIndex = -1,
+    deviceName,
     outputDir = "./recordings",
-    frameLength = 512,
-  }: AudioGuestbookOptions = {}) {
-    this.deviceIndex = deviceIndex;
+    duration = 60,
+  }: AudioRecorderOptions = {}) {
+    this.deviceName = deviceName;
+    this.duration = duration;
     this.outputDir = outputDir;
-    this.frameLength = frameLength;
-    this.recorder = null;
     this.recording = false;
-    this.chunks = [];
     this.sessionId = null;
+    this.ffmpegProcess = null;
 
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
@@ -36,43 +43,85 @@ export class AudioGuestbook {
   }
 
   static listDevices(): string[] {
-    return PvRecorder.getAvailableDevices();
+    const platform = process.platform;
+    const devices: string[] = [];
+
+    if (platform === "win32") {
+      const result = spawnSync(
+        ffmpegPath,
+        ["-list_devices", "true", "-f", "dshow", "-i", "dummy"],
+        { encoding: "utf8" }
+      );
+
+      const lines = result.stderr.split("\n");
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.includes("(audio)")) {
+          const match = trimmed.match(/"(.+?)"/);
+          if (match) {
+            devices.push(match[1]);
+          }
+        }
+      }
+    } else {
+      const result = spawnSync("arecord", ["-l"], { encoding: "utf8" });
+      const lines = result.stdout.split("\n");
+      for (const line of lines) {
+        const match = line.match(/card (\d+): (\S+).*device (\d+): (.+?) \[/);
+        if (match) {
+          const [, cardNum, cardName, deviceNum, deviceName] = match;
+          devices.push(`hw:${cardNum},${deviceNum} (${deviceName})`);
+        }
+      }
+    }
+
+    return devices;
   }
 
-  startRecording(sessionId: string = `guest_${Date.now()}`): void {
+  startRecording(sessionId: string = `guest_${Date.now()}`): string {
     if (this.recording) {
       console.warn("Already recording!");
-      return;
+      return "";
     }
 
     this.sessionId = sessionId;
-    this.recorder = new PvRecorder(this.deviceIndex, this.frameLength);
-    this.recorder.start();
+    const outputFile = path.join(this.outputDir, `${this.sessionId}.wav`);
     this.recording = true;
-    this.chunks = [];
 
-    console.log(`🎙️ Recording started for session: ${this.sessionId}`);
+    const input =
+      process.platform === "win32"
+        ? `audio=${this.deviceName ?? "default"}`
+        : this.deviceName ?? "default";
 
-    this.recorder.on("data", (pcmFrame: number[]) => {
-      const buffer = Buffer.from(new Int16Array(pcmFrame).buffer);
-      this.chunks.push(buffer);
-    });
+    const inputFormat = process.platform === "win32" ? "dshow" : "alsa";
+
+    this.ffmpegProcess = ffmpeg()
+      .input(input)
+      .inputFormat(inputFormat)
+      .audioCodec("pcm_s16le")
+      .duration(120)
+      .format("wav")
+      .on("start", () => {
+        console.log(`🎙️ Recording started for session: ${this.sessionId}`);
+      })
+      .on("end", () => {
+        console.log(`💾 Recording saved to: ${outputFile}`);
+      })
+      .on("error", (err: never) => {
+        console.error("Recording error:", err);
+      })
+      .save(outputFile);
+
+    return outputFile;
   }
 
-  async stopRecording(): Promise<string | undefined> {
-    if (!this.recording || !this.recorder || !this.sessionId) {
+  stopRecording(): void {
+    if (this.recording && this.ffmpegProcess) {
+      this.ffmpegProcess.kill("SIGINT");
+      this.recording = false;
+      this.ffmpegProcess = null;
+    } else {
       console.warn("Not currently recording.");
-      return;
     }
-
-    this.recording = false;
-    await this.recorder.stop();
-    this.recorder.release();
-
-    const filePath = path.join(this.outputDir, `${this.sessionId}.pcm`);
-    fs.writeFileSync(filePath, Buffer.concat(this.chunks));
-
-    console.log(`💾 Recording saved to: ${filePath}`);
-    return filePath;
   }
 }
