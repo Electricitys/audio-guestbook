@@ -1,10 +1,11 @@
 // @ts-types="npm:@types/fluent-ffmpeg"
 import { spawnSync } from "node:child_process";
+import { createNanoEvents, Emitter } from "npm:nanoevents";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import process from "node:process";
 import ffmpeg from "npm:fluent-ffmpeg";
-import ffmpegPath from "./ffmpeg-file.ts";
+import ffmpegPath from "./utils/ffmpeg-file.ts";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -15,6 +16,12 @@ interface AudioRecorderOptions {
 }
 
 export class AudioRecorder {
+  public emitter: Emitter<{
+    start: (props: { sessionId: string; device: string }) => void;
+    end: (props: { sessionId: string; outputFile: string }) => void;
+    error: (props: { sessionId: string; err: Error }) => void;
+  }>;
+
   private deviceName: string | undefined;
   private duration: number;
   private outputDir: string;
@@ -33,6 +40,8 @@ export class AudioRecorder {
     this.recording = false;
     this.sessionId = null;
     this.ffmpegProcess = null;
+
+    this.emitter = createNanoEvents();
 
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
@@ -103,13 +112,41 @@ export class AudioRecorder {
       .duration(120)
       .format("wav")
       .on("start", () => {
-        console.log(`🎙️ Recording started for session: ${this.sessionId}`);
+        // console.log(`🎙️ Recording started for session: ${this.sessionId}`);
+        this.emitter.emit("start", {
+          sessionId: this.sessionId!,
+          device: this.deviceName,
+        });
       })
       .on("end", () => {
-        console.log(`💾 Recording saved to: ${outputFile}`);
+        // console.log(`💾 Recording saved to: ${outputFile}`);
+        this.emitter.emit("end", {
+          sessionId: this.sessionId!,
+          outputFile,
+        });
       })
       .on("error", (err: Error) => {
-        console.error("Recording error:", err);
+        // console.error("Recording error:", err);
+        if (this.recording === false) {
+          this.emitter.emit("end", {
+            sessionId: this.sessionId!,
+            outputFile,
+          });
+        } else {
+          if (this.ffmpegProcess) {
+            this.ffmpegProcess.kill("SIGKILL");
+          }
+          this.recording = false;
+          this.ffmpegProcess = null;
+          this.emitter.emit("error", {
+            sessionId: this.sessionId!,
+            err,
+          });
+        }
+      })
+
+      .on("progress", (progress) => {
+        console.log("Processing: ", progress.timemark);
       })
       .save(outputFile);
 
@@ -118,7 +155,7 @@ export class AudioRecorder {
 
   stopRecording(): void {
     if (this.recording && this.ffmpegProcess) {
-      this.ffmpegProcess.kill("SIGINT");
+      this.ffmpegProcess.kill("SIGKILL");
       this.recording = false;
       this.ffmpegProcess = null;
     } else {
