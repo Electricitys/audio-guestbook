@@ -4,6 +4,7 @@
     "@picovoice/pvrecorder-node": "npm:@picovoice/pvrecorder-node@^1.2.8",
     "@picovoice/pvspeaker-node": "npm:@picovoice/pvspeaker-node@^1.0.3",
     "@std/assert": "jsr:@std/assert@1",
+    "@types/fluent-ffmpeg": "npm:@types/fluent-ffmpeg@^2.1.27",
     "ffmpeg-static": "npm:ffmpeg-static@^5.2.0",
     "fluent-ffmpeg": "npm:fluent-ffmpeg@^2.1.3"
   },

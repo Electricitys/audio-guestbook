@@ -1,8 +1,7 @@
+import process from "node:process";
 import { Application, Router } from "jsr:@oak/oak";
 import { AudioPlayer } from "./speaker.ts";
 import { AudioRecorder } from "./recorder.ts";
-import process from "node:process";
-// import path from "node:path";
 
 const router = new Router();
 
@@ -16,8 +15,7 @@ const audioRecorder = new AudioRecorder({
     // process.platform === "win32" ? "Microphone (Realtek(R) Audio)" : "hw:1",
     process.platform === "win32"
       ? "External Microphone (Realtek(R) Audio)"
-      : // "Microphone (Realtek(R) Audio)"
-        "hw:1",
+      : "hw:1",
   outputDir: "./recordings",
 });
 
@@ -32,6 +30,7 @@ router.get("/record/start", async (ctx) => {
   ctx.response.body = {
     type: "recording",
     file: file_output,
+    device: audioRecorder._deviceName || "default",
   };
 });
 

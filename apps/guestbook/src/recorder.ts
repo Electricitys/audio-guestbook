@@ -1,13 +1,10 @@
-import ffmpeg from "npm:fluent-ffmpeg";
+// @ts-types="npm:@types/fluent-ffmpeg"
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { spawnSync } from "node:child_process";
 import process from "node:process";
-
-const ffmpegPath =
-  process.env.FFMPEG_PATH || process.platform === "win32"
-    ? "./node_modules/ffmpeg-static/ffmpeg.exe"
-    : "./node_modules/ffmpeg-static/ffmpeg";
+import ffmpeg from "npm:fluent-ffmpeg";
+import ffmpegPath from "./ffmpeg-file.ts";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -42,6 +39,10 @@ export class AudioRecorder {
     }
   }
 
+  get _deviceName(): string | undefined {
+    return this.deviceName;
+  }
+
   static listDevices(): string[] {
     const platform = process.platform;
     const devices: string[] = [];
@@ -69,7 +70,7 @@ export class AudioRecorder {
       for (const line of lines) {
         const match = line.match(/card (\d+): (\S+).*device (\d+): (.+?) \[/);
         if (match) {
-          const [, cardNum, cardName, deviceNum, deviceName] = match;
+          const [, cardNum, _cardName, deviceNum, deviceName] = match;
           devices.push(`hw:${cardNum},${deviceNum} (${deviceName})`);
         }
       }
@@ -107,7 +108,7 @@ export class AudioRecorder {
       .on("end", () => {
         console.log(`💾 Recording saved to: ${outputFile}`);
       })
-      .on("error", (err: never) => {
+      .on("error", (err: Error) => {
         console.error("Recording error:", err);
       })
       .save(outputFile);
