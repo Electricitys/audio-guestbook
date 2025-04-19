@@ -1,29 +1,8 @@
 import { audioRecorder } from "./src/audio.ts";
+import { launch } from "./src/phone-logic.ts";
 import rest from "./src/server.ts";
-import { onKeyCombo, ReverseVirtualKeyCodes } from "./src/utils/keycombo.ts";
 
 const PORT = 8000;
-let recording = false;
-
-onKeyCombo(
-  [
-    ReverseVirtualKeyCodes.LCONTROL,
-    ReverseVirtualKeyCodes.LSHIFT,
-    ReverseVirtualKeyCodes.SPACE,
-  ],
-  () => {
-    if (recording) {
-      audioRecorder.stopRecording();
-    } else {
-      audioRecorder.startRecording();
-    }
-    recording = !recording;
-  }
-);
-
-// hook.addEventListener("keyup", (event) => {
-//   console.log("Key up:", VirtualKeyCodes[event.detail.vkCode]);
-// });
 
 audioRecorder.emitter.on("start", ({ sessionId }) => {
   console.log(`Recording started with session ID: ${sessionId}`);
@@ -37,5 +16,7 @@ audioRecorder.emitter.on("error", ({ sessionId, err }) => {
 });
 
 console.log(`Server Listen on: http://localhost:${PORT}`);
+
+launch();
 
 rest.listen({ port: PORT });

@@ -17,7 +17,7 @@ interface AudioRecorderOptions {
 
 export class AudioRecorder {
   public emitter: Emitter<{
-    start: (props: { sessionId: string; device: string }) => void;
+    start: (props: { sessionId: string; device?: string }) => void;
     end: (props: { sessionId: string; outputFile: string }) => void;
     error: (props: { sessionId: string; err: Error }) => void;
   }>;

@@ -5,7 +5,7 @@ import process from "node:process";
 export const audioPlayer = new AudioPlayer({
   deviceName:
     // process.platform === "win32" ? "Microphone (Realtek(R) Audio)" : "hw:1",
-    process.platform === "win32" ? "1" : "hw:1",
+    process.platform === "win32" ? "2" : "hw:1",
 });
 
 export const audioRecorder = new AudioRecorder({

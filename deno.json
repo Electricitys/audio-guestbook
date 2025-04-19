@@ -1,11 +1,13 @@
 {
   "tasks": {
-    "dev": "deno run -A --unstable-kv --watch main.ts",
-    "dev:list": "deno run -A --unstable-kv --watch list.ts",
+    "dev": "deno run -A --watch main.ts",
+    "dev:guestbook": "cd apps/guestbook && deno run -A --watch main.ts",
     "dev:counter": "deno run -A --unstable-kv --watch counter.ts"
   },
+  "nodeModulesDir": "auto",
   "imports": {
     "@libsql/client": "npm:@libsql/client@^0.15.3",
     "@std/assert": "jsr:@std/assert@1"
-  }
+  },
+  "workspace": ["./apps/guestbook"]
 }
