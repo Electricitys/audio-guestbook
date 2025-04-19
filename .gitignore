@@ -2,5 +2,6 @@ node_modules
 target
 recordings
 lib
-.env
+
+.env*.local
 token.json
