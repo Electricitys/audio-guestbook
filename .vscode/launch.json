@@ -11,14 +11,14 @@
       "program": "${workspaceFolder}/apps/guestbook/main.ts",
       "cwd": "${workspaceFolder}",
       "env": {},
-      "runtimeExecutable": "C:\\Users\\user\\.deno\\bin\\deno.EXE",
+      "runtimeExecutable": "deno",
       "runtimeArgs": [
         "run",
         "--unstable",
         // "--inspect-wait",
         "--inspect-brk",
         "--allow-all",
-        "--watch",
+        "--watch"
         // "<entry_point>"
       ],
       "attachSimplePort": 9229

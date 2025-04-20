@@ -1,7 +1,8 @@
 {
   "tasks": {
-    "dev": "deno run -A --watch main.ts",
-    "dev:guestbook": "cd apps/guestbook && deno run -A --watch main.ts",
+    "dev:console": "cd apps/gb-console && pnpm run dev",
+    "dev:player": "cd apps/gb-player && deno task dev",
+    "dev:player:compile": "cd apps/gb-player && deno task compile",
     "dev:counter": "deno run -A --unstable-kv --watch counter.ts"
   },
   "nodeModulesDir": "auto",
@@ -9,5 +10,6 @@
     "@libsql/client": "npm:@libsql/client@^0.15.3",
     "@std/assert": "jsr:@std/assert@1"
   },
-  "workspace": ["./apps/guestbook"]
+  "unstable": ["unsafe-proto"],
+  "workspace": ["./apps/gb-player", "./apps/gb-console"]
 }

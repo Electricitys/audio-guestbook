@@ -11,7 +11,7 @@ router.get("/", (ctx) => {
   ctx.response.body = "Hello world";
 });
 
-router.get("/record/start", async (ctx) => {
+router.get("/recorder/start", async (ctx) => {
   const file_output = await audioRecorder.startRecording();
   ctx.response.body = {
     type: "recording",
@@ -20,14 +20,14 @@ router.get("/record/start", async (ctx) => {
   };
 });
 
-router.get("/record/list", (ctx) => {
+router.get("/recorder/list", (ctx) => {
   const list_devices = AudioRecorder.listDevices();
   ctx.response.body = {
     list_devices,
   };
 });
 
-router.get("/record/stop", async (ctx) => {
+router.get("/recorder/stop", async (ctx) => {
   ctx.response.body = "Stopping";
   await audioRecorder.stopRecording();
 });
