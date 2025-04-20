@@ -171,7 +171,7 @@ export const columns: ColumnDef<FileProps>[] = [
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(payment.id)}
             >
-              Copy payment ID
+              Copy item ID
             </DropdownMenuItem>
             <DropdownMenuItem>Sync Now</DropdownMenuItem>
             <DropdownMenuSeparator />

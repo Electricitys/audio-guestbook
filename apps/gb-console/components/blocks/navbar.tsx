@@ -1,21 +1,15 @@
+"use client";
+
 import React from "react";
 
 import { Menu } from "lucide-react";
+import Image from "next/image";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import {
   Sheet,
@@ -25,9 +19,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
-import Image from "next/image";
+import { renderMenuItem, renderMobileMenuItem } from "./navbar-item";
 
-interface MenuItem {
+export interface MenuItem {
   title: string;
   url: string;
   description?: string;
@@ -35,7 +29,7 @@ interface MenuItem {
   items?: MenuItem[];
 }
 
-interface NavbarProps {
+export interface NavbarProps {
   logo?: {
     url: string;
     src: string;
@@ -67,14 +61,14 @@ const Navbar = ({
     title: APP_NAME || "Console",
   },
   menu = [
-    { title: "Home", url: "#" },
+    { title: "Status", url: "/status" },
     {
-      title: "Api",
-      url: "/api",
+      title: "Logs",
+      url: "/logs",
     },
     {
-      title: "Health",
-      url: "/api/health",
+      title: "Settings",
+      url: "/settings",
     },
   ],
   mobileExtraLinks = [
@@ -91,7 +85,7 @@ const Navbar = ({
   return (
     <section className="py-4">
       <div className="container mx-auto px-4 max-w-4xl">
-        <nav className="hidden justify-between items-center lg:flex">
+        <nav className="hidden justify-between items-center md:flex">
           <div className="flex items-center gap-6">
             <a href={logo.url} className="flex items-center gap-2">
               <Image
@@ -111,21 +105,14 @@ const Navbar = ({
               </NavigationMenu>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant={"outline"} size="sm">
-              Restart Device
-            </Button>
-            <Button variant={"destructive"} size="sm">
-              Factory Reset
-            </Button>
-          </div>
+          <div className="flex gap-2"></div>
         </nav>
-        <div className="block lg:hidden">
+        <div className="block md:hidden">
           <div className="flex items-center justify-between">
             <a href={logo.url} className="flex items-center gap-2">
               <Image
                 src={logo.src}
-                className="w-8"
+                className="h-8 w-auto"
                 alt={logo.alt}
                 height={0}
                 width={0}
@@ -146,7 +133,8 @@ const Navbar = ({
                         src={logo.src}
                         className="w-8"
                         alt={logo.alt}
-                        width={32}
+                        height={0}
+                        width={0}
                       />
                       <span className="text-lg font-semibold">
                         {logo.title}
@@ -154,7 +142,7 @@ const Navbar = ({
                     </a>
                   </SheetTitle>
                 </SheetHeader>
-                <div className="my-6 flex flex-col gap-6">
+                <div className="my-6 px-4 flex flex-col gap-6">
                   <Accordion
                     type="single"
                     collapsible
@@ -190,89 +178,6 @@ const Navbar = ({
         </div>
       </div>
     </section>
-  );
-};
-
-const renderMenuItem = (item: MenuItem) => {
-  if (item.items) {
-    return (
-      <NavigationMenuItem key={item.title} className="text-muted-foreground">
-        <NavigationMenuTrigger>{item.title}</NavigationMenuTrigger>
-        <NavigationMenuContent>
-          <ul className="w-80 p-3">
-            <NavigationMenuLink>
-              {item.items.map((subItem) => (
-                <li key={subItem.title}>
-                  <a
-                    className="flex select-none gap-4 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted hover:text-accent-foreground"
-                    href={subItem.url}
-                  >
-                    {subItem.icon}
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {subItem.title}
-                      </div>
-                      {subItem.description && (
-                        <p className="text-sm leading-snug text-muted-foreground">
-                          {subItem.description}
-                        </p>
-                      )}
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </NavigationMenuLink>
-          </ul>
-        </NavigationMenuContent>
-      </NavigationMenuItem>
-    );
-  }
-
-  return (
-    <a
-      key={item.title}
-      className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-accent-foreground"
-      href={item.url}
-    >
-      {item.title}
-    </a>
-  );
-};
-
-const renderMobileMenuItem = (item: MenuItem) => {
-  if (item.items) {
-    return (
-      <AccordionItem key={item.title} value={item.title} className="border-b-0">
-        <AccordionTrigger className="py-0 font-semibold hover:no-underline">
-          {item.title}
-        </AccordionTrigger>
-        <AccordionContent className="mt-2">
-          {item.items.map((subItem) => (
-            <a
-              key={subItem.title}
-              className="flex select-none gap-4 rounded-md p-3 leading-none outline-none transition-colors hover:bg-muted hover:text-accent-foreground"
-              href={subItem.url}
-            >
-              {subItem.icon}
-              <div>
-                <div className="text-sm font-semibold">{subItem.title}</div>
-                {subItem.description && (
-                  <p className="text-sm leading-snug text-muted-foreground">
-                    {subItem.description}
-                  </p>
-                )}
-              </div>
-            </a>
-          ))}
-        </AccordionContent>
-      </AccordionItem>
-    );
-  }
-
-  return (
-    <a key={item.title} href={item.url} className="font-semibold">
-      {item.title}
-    </a>
   );
 };
 
