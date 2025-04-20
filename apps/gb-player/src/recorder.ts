@@ -6,6 +6,7 @@ import * as path from "node:path";
 import process from "node:process";
 import ffmpeg from "npm:fluent-ffmpeg";
 import ffmpegPath from "./utils/ffmpeg-file.ts";
+import { log } from "./utils/logging.ts";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -90,7 +91,7 @@ export class AudioRecorder {
 
   startRecording(sessionId: string = `guest_${Date.now()}`): string {
     if (this.recording) {
-      console.warn("Already recording!");
+      log.warn("Already recording!");
       return "";
     }
 

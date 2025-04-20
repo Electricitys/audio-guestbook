@@ -11,5 +11,5 @@
     "@std/assert": "jsr:@std/assert@1"
   },
   "unstable": ["unsafe-proto"],
-  "workspace": ["./apps/gb-player", "./apps/gb-console"]
+  "workspace": ["./apps/gb-player"]
 }

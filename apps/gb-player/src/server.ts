@@ -1,7 +1,9 @@
+import fs from "node:fs";
 import { Application, Router } from "jsr:@oak/oak";
 import { AudioPlayer } from "./speaker.ts";
 import { AudioRecorder } from "./recorder.ts";
 import { audioPlayer, audioRecorder } from "./audio.ts";
+import "./utils/logging.ts";
 
 const router = new Router();
 
@@ -41,6 +43,14 @@ router.get("/speaker/list", async (ctx) => {
   const list_devices = await AudioPlayer.listDevices();
   ctx.response.body = {
     list_devices,
+  };
+});
+
+router.get("/api/files/:path", async (ctx) => {
+  const files = await fs.readdirSync(`./files`);
+  console.log(files);
+  ctx.response.body = {
+    message: "OK",
   };
 });
 

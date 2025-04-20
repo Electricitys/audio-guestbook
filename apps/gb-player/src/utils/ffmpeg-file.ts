@@ -2,6 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
 import ffmpegStaticPath from "npm:ffmpeg-static";
+import { log } from "./logging.ts";
 
 const platform = `${os.platform()}_${os.arch()}`;
 const targetDir = `./lib/${platform}`;
@@ -12,18 +13,18 @@ let ffmpegPath: string;
 const systemFfmpeg = await getSystemFfmpegPath();
 
 if (systemFfmpeg) {
-  console.log("✅ Using system-installed ffmpeg.");
+  log.info("✅ Using system-installed ffmpeg.");
   ffmpegPath = systemFfmpeg;
 } else {
   console.log(Deno.env.get);
   if (!fs.existsSync(staticFfmpegPath)) {
-    console.log(
+    log.info(
       `ffmpeg not found, copying from static path to ${staticFfmpegPath}`
     );
     await Deno.mkdir(targetDir, { recursive: true });
     await Deno.copyFile(ffmpegStaticPath as never as string, staticFfmpegPath);
   } else {
-    console.log("✅ Using already-copied static ffmpeg.");
+    log.info("✅ Using already-copied static ffmpeg.");
   }
   ffmpegPath = staticFfmpegPath;
 }
