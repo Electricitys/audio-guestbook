@@ -53,12 +53,7 @@ export class LoggingStream extends BaseStream {
 
   private writeLog(msg: string, type: LogType = "info") {
     return this.db
-      .prepare(
-        `
-      INSERT INTO logger (message, type)
-      VALUES (?, ?)
-    `
-      )
+      .prepare(`INSERT INTO logger (message, type) VALUES (?, ?);`)
       .run(msg, type);
   }
 }

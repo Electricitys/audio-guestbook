@@ -15,7 +15,7 @@ audioRecorder.emitter.on("end", ({ sessionId, outputFile }) => {
 });
 audioRecorder.emitter.on("error", ({ sessionId, err }) => {
   log.info(`Recording error with session ID: ${sessionId}`);
-  log.error(err);
+  log.error(err.message);
 });
 
 log.info(`Server Listen on: http://localhost:${PORT}`);

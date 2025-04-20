@@ -1,19 +1,18 @@
 // @ts-types="npm:@types/fluent-ffmpeg"
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 import { createNanoEvents, Emitter } from "npm:nanoevents";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import process from "node:process";
 import ffmpeg from "npm:fluent-ffmpeg";
 import ffmpegPath from "./utils/ffmpeg-file.ts";
-import { log } from "./utils/logging.ts";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 interface AudioRecorderOptions {
-  deviceName?: string; // Optional: e.g., 'hw:1' on Linux or 'Microphone (Realtek Audio)' on Windows
+  deviceName?: string;
   outputDir?: string;
-  duration?: number; // Optional: limit recording duration
+  duration?: number;
 }
 
 export class AudioRecorder {
@@ -23,7 +22,7 @@ export class AudioRecorder {
     error: (props: { sessionId: string; err: Error }) => void;
   }>;
 
-  private deviceName: string | undefined;
+  public deviceName?: string;
   private duration: number;
   private outputDir: string;
   private recording: boolean;
@@ -49,10 +48,6 @@ export class AudioRecorder {
     }
   }
 
-  get _deviceName(): string | undefined {
-    return this.deviceName;
-  }
-
   static listDevices(): string[] {
     const platform = process.platform;
     const devices: string[] = [];
@@ -69,20 +64,32 @@ export class AudioRecorder {
         const trimmed = line.trim();
         if (trimmed.includes("(audio)")) {
           const match = trimmed.match(/"(.+?)"/);
-          if (match) {
-            devices.push(match[1]);
-          }
+          if (match) devices.push(match[1]);
         }
       }
-    } else {
-      const result = spawnSync("arecord", ["-l"], { encoding: "utf8" });
-      const lines = result.stdout.split("\n");
-      for (const line of lines) {
-        const match = line.match(/card (\d+): (\S+).*device (\d+): (.+?) \[/);
-        if (match) {
-          const [, cardNum, _cardName, deviceNum, deviceName] = match;
-          devices.push(`hw:${cardNum},${deviceNum} (${deviceName})`);
-        }
+    } else if (platform === "linux") {
+      // Prefer PulseAudio
+      const result = spawnSync("pactl", ["list", "sources", "short"], {
+        encoding: "utf8",
+      });
+
+      if (result.status === 0) {
+        result.stdout.split("\n").forEach((line) => {
+          const parts = line.split("\t");
+          if (parts.length >= 2) {
+            devices.push(parts[1]);
+          }
+        });
+      } else {
+        // Fallback to arecord for ALSA
+        const resultAlsa = spawnSync("arecord", ["-l"], { encoding: "utf8" });
+        resultAlsa.stdout.split("\n").forEach((line) => {
+          const match = line.match(/card (\d+): (\S+).*device (\d+): (.+?) \[/);
+          if (match) {
+            const [, cardNum, , deviceNum, deviceName] = match;
+            devices.push(`hw:${cardNum},${deviceNum} (${deviceName})`);
+          }
+        });
       }
     }
 
@@ -91,7 +98,7 @@ export class AudioRecorder {
 
   startRecording(sessionId: string = `guest_${Date.now()}`): string {
     if (this.recording) {
-      log.warn("Already recording!");
+      console.warn("Already recording!");
       return "";
     }
 
@@ -99,53 +106,95 @@ export class AudioRecorder {
     const outputFile = path.join(this.outputDir, `${this.sessionId}.wav`);
     this.recording = true;
 
-    const input =
-      process.platform === "win32"
-        ? `audio=${this.deviceName ?? "default"}`
-        : this.deviceName ?? "default";
+    const platform = process.platform;
 
-    const inputFormat = process.platform === "win32" ? "dshow" : "alsa";
+    if (platform === "linux") {
+      const deviceArg = this.deviceName ? ["-D", this.deviceName] : [];
+      const args = [
+        ...deviceArg,
+        "-f",
+        "cd", // 16-bit, 44.1kHz, stereo
+        "-t",
+        "wav",
+        "-d",
+        this.duration.toString(),
+        outputFile,
+      ];
+
+      const arecordProc = spawn("arecord", args);
+
+      this.ffmpegProcess = arecordProc as any; // for compatibility
+
+      this.emitter.emit("start", {
+        sessionId: this.sessionId!,
+        device: this.deviceName,
+      });
+
+      arecordProc.on("close", (code, signal) => {
+        this.recording = false;
+        this.ffmpegProcess = null;
+
+        if (code === 0 || signal === "SIGKILL" || code === 137) {
+          this.emitter.emit("end", {
+            sessionId: this.sessionId!,
+            outputFile,
+          });
+        } else {
+          this.emitter.emit("error", {
+            sessionId: this.sessionId!,
+            err: new Error(`arecord exited with code ${code}`),
+          });
+        }
+      });
+
+      arecordProc.on("error", (err: Error) => {
+        this.recording = false;
+        this.ffmpegProcess = null;
+        this.emitter.emit("error", {
+          sessionId: this.sessionId!,
+          err,
+        });
+      });
+
+      return outputFile;
+    }
+
+    // ✅ FFmpeg fallback for Windows/macOS
+    const input =
+      platform === "win32"
+        ? `audio=${this.deviceName ?? "default"}`
+        : this.deviceName ?? ":0";
+
+    const inputFormat = platform === "win32" ? "dshow" : "avfoundation";
 
     this.ffmpegProcess = ffmpeg()
       .input(input)
       .inputFormat(inputFormat)
       .audioCodec("pcm_s16le")
-      .duration(120)
+      .duration(this.duration)
       .format("wav")
       .on("start", () => {
-        // console.log(`🎙️ Recording started for session: ${this.sessionId}`);
         this.emitter.emit("start", {
           sessionId: this.sessionId!,
           device: this.deviceName,
         });
       })
       .on("end", () => {
-        // console.log(`💾 Recording saved to: ${outputFile}`);
+        this.recording = false;
+        this.ffmpegProcess = null;
         this.emitter.emit("end", {
           sessionId: this.sessionId!,
           outputFile,
         });
       })
       .on("error", (err: Error) => {
-        // console.error("Recording error:", err);
-        if (this.recording === false) {
-          this.emitter.emit("end", {
-            sessionId: this.sessionId!,
-            outputFile,
-          });
-        } else {
-          if (this.ffmpegProcess) {
-            this.ffmpegProcess.kill("SIGKILL");
-          }
-          this.recording = false;
-          this.ffmpegProcess = null;
-          this.emitter.emit("error", {
-            sessionId: this.sessionId!,
-            err,
-          });
-        }
+        this.recording = false;
+        this.ffmpegProcess = null;
+        this.emitter.emit("error", {
+          sessionId: this.sessionId!,
+          err,
+        });
       })
-
       .on("progress", (progress) => {
         console.log("Processing: ", progress.timemark);
       })

@@ -1,6 +1,6 @@
-import { Logger, Level, Stream, LogRecord } from "jsr:@onjara/optic/logger";
+import { Logger, Level } from "jsr:@onjara/optic/logger";
+import { ConsoleStream } from "jsr:@onjara/optic";
 import { LoggingStream } from "./logging-db.ts";
-import { ConsoleStream } from "@onjara/optic";
 
 const logStream = new LoggingStream();
 const consoleStream = new ConsoleStream();

@@ -1,16 +1,20 @@
-import fs from "node:fs";
 import { Application, Router } from "jsr:@oak/oak";
 import { AudioPlayer } from "./speaker.ts";
 import { AudioRecorder } from "./recorder.ts";
 import { audioPlayer, audioRecorder } from "./audio.ts";
-import "./utils/logging.ts";
+import { apiFiles } from "./routes/api/files.ts";
+import process from "node:process";
 
 const router = new Router();
 
 const sample_audio = `${Deno.cwd()}/audio/audio_sample_mono.wav`;
 
-router.get("/", (ctx) => {
-  ctx.response.body = "Hello world";
+router.get("/api/health", (ctx) => {
+  ctx.response.body = {
+    status: "ok",
+    message: "Server is running",
+    uptime: process.uptime(),
+  };
 });
 
 router.get("/recorder/start", async (ctx) => {
@@ -18,7 +22,7 @@ router.get("/recorder/start", async (ctx) => {
   ctx.response.body = {
     type: "recording",
     file: file_output,
-    device: audioRecorder._deviceName || "default",
+    device: audioRecorder.deviceName || "default",
   };
 });
 
@@ -46,12 +50,9 @@ router.get("/speaker/list", async (ctx) => {
   };
 });
 
-router.get("/api/files/:path", async (ctx) => {
-  const files = await fs.readdirSync(`./files`);
-  console.log(files);
-  ctx.response.body = {
-    message: "OK",
-  };
+router.get("/api/files/:path*", async (ctx) => {
+  const path = ctx.params.path || "";
+  ctx.response.body = await apiFiles(path);
 });
 
 const rest = new Application();
