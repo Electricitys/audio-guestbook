@@ -7,7 +7,8 @@
     "@types/fluent-ffmpeg": "npm:@types/fluent-ffmpeg@^2.1.27",
     "ffmpeg-static": "npm:ffmpeg-static@^5.2.0",
     "fluent-ffmpeg": "npm:fluent-ffmpeg@^2.1.3",
-    "nanoevents": "npm:nanoevents@^9.1.0"
+    "nanoevents": "npm:nanoevents@^9.1.0",
+    "tus-js-client": "npm:tus-js-client@^4.3.1"
   },
   "tasks": {
     "dev": "deno run -A --watch main.ts",

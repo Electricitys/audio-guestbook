@@ -6,17 +6,26 @@ import * as path from "node:path";
 import process from "node:process";
 import ffmpeg from "npm:fluent-ffmpeg";
 import ffmpegPath from "./utils/ffmpeg-file.ts";
+import { AudioFileManager } from "./utils/audio-file-manager.ts";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 interface AudioRecorderOptions {
-  deviceName?: string;
-  outputDir?: string;
+  deviceName: string;
+  outputDir: string;
   duration?: number;
+  audioFileManager: AudioFileManager;
 }
 
 export class AudioRecorder {
   public emitter: Emitter<{
+    start: (props: { sessionId: string; device?: string }) => void;
+    end: (props: { sessionId: string; outputFile: string }) => void;
+    error: (props: { sessionId: string; err: Error }) => void;
+  }>;
+
+  // for private use
+  private _emitter: Emitter<{
     start: (props: { sessionId: string; device?: string }) => void;
     end: (props: { sessionId: string; outputFile: string }) => void;
     error: (props: { sessionId: string; err: Error }) => void;
@@ -29,11 +38,14 @@ export class AudioRecorder {
   private sessionId: string | null;
   private ffmpegProcess: ffmpeg.FfmpegCommand | null;
 
+  private audioFileManager: AudioFileManager;
+
   constructor({
     deviceName,
-    outputDir = "./recordings",
+    outputDir,
     duration = 60,
-  }: AudioRecorderOptions = {}) {
+    audioFileManager,
+  }: AudioRecorderOptions) {
     this.deviceName = deviceName;
     this.duration = duration;
     this.outputDir = outputDir;
@@ -41,7 +53,24 @@ export class AudioRecorder {
     this.sessionId = null;
     this.ffmpegProcess = null;
 
+    this.audioFileManager = audioFileManager;
+
     this.emitter = createNanoEvents();
+    this._emitter = createNanoEvents();
+
+    this._emitter.on("start", (props) => {
+      this.emitter.emit("start", props);
+    });
+    this._emitter.on("end", (props) => {
+      this.audioFileManager.addFile({
+        path: props.outputFile,
+        status: "saved",
+      });
+      this.emitter.emit("end", props);
+    });
+    this._emitter.on("error", (props) => {
+      this.emitter.emit("error", props);
+    });
 
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
@@ -125,7 +154,7 @@ export class AudioRecorder {
 
       this.ffmpegProcess = arecordProc as any; // for compatibility
 
-      this.emitter.emit("start", {
+      this._emitter.emit("start", {
         sessionId: this.sessionId!,
         device: this.deviceName,
       });
@@ -135,12 +164,12 @@ export class AudioRecorder {
         this.ffmpegProcess = null;
 
         if (code === 0 || signal === "SIGKILL" || code === 137) {
-          this.emitter.emit("end", {
+          this._emitter.emit("end", {
             sessionId: this.sessionId!,
             outputFile,
           });
         } else {
-          this.emitter.emit("error", {
+          this._emitter.emit("error", {
             sessionId: this.sessionId!,
             err: new Error(`arecord exited with code ${code}`),
           });
@@ -150,7 +179,7 @@ export class AudioRecorder {
       arecordProc.on("error", (err: Error) => {
         this.recording = false;
         this.ffmpegProcess = null;
-        this.emitter.emit("error", {
+        this._emitter.emit("error", {
           sessionId: this.sessionId!,
           err,
         });
@@ -174,7 +203,7 @@ export class AudioRecorder {
       .duration(this.duration)
       .format("wav")
       .on("start", () => {
-        this.emitter.emit("start", {
+        this._emitter.emit("start", {
           sessionId: this.sessionId!,
           device: this.deviceName,
         });
@@ -182,7 +211,7 @@ export class AudioRecorder {
       .on("end", () => {
         this.recording = false;
         this.ffmpegProcess = null;
-        this.emitter.emit("end", {
+        this._emitter.emit("end", {
           sessionId: this.sessionId!,
           outputFile,
         });
@@ -190,7 +219,7 @@ export class AudioRecorder {
       .on("error", (err: Error) => {
         this.recording = false;
         this.ffmpegProcess = null;
-        this.emitter.emit("error", {
+        this._emitter.emit("error", {
           sessionId: this.sessionId!,
           err,
         });

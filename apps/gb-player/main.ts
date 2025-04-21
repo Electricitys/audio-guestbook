@@ -11,7 +11,7 @@ audioRecorder.emitter.on("start", ({ sessionId }) => {
   log.info(`Recording started with session ID: ${sessionId}`);
 });
 audioRecorder.emitter.on("end", ({ sessionId, outputFile }) => {
-  log.info(`Recording ended with session ID: ${sessionId}\n ${outputFile}`);
+  log.info(`Recording ended with session ID: ${sessionId}\n\t${outputFile}`);
 });
 audioRecorder.emitter.on("error", ({ sessionId, err }) => {
   log.info(`Recording error with session ID: ${sessionId}`);

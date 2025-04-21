@@ -1,9 +1,10 @@
 import { Application, Router } from "jsr:@oak/oak";
 import { AudioPlayer } from "./speaker.ts";
 import { AudioRecorder } from "./recorder.ts";
-import { audioPlayer, audioRecorder } from "./audio.ts";
+import { audioFileManager, audioPlayer, audioRecorder } from "./audio.ts";
 import { apiFiles } from "./routes/api/files.ts";
 import process from "node:process";
+import { AudioFileManager } from "./utils/audio-file-manager.ts";
 
 const router = new Router();
 
@@ -14,6 +15,9 @@ router.get("/api/health", (ctx) => {
     status: "ok",
     message: "Server is running",
     uptime: process.uptime(),
+    uid: Deno.uid(),
+    memory_usage: Deno.memoryUsage(),
+    last_sync: new Date(),
   };
 });
 
@@ -50,9 +54,17 @@ router.get("/speaker/list", async (ctx) => {
   };
 });
 
-router.get("/api/files/:path*", async (ctx) => {
-  const path = ctx.params.path || "";
-  ctx.response.body = await apiFiles(path);
+router.get("/api/sync", async (ctx) => {
+  const syncFiles = await audioFileManager.syncFiles();
+
+  ctx.response.body = {
+    message: "OK",
+    total: syncFiles.length,
+  };
+});
+
+router.get("/api/files", async (ctx) => {
+  ctx.response.body = await apiFiles();
 });
 
 const rest = new Application();

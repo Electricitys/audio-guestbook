@@ -3,5 +3,8 @@ target
 recordings
 /lib
 
+/logger.db
+/audio.db
+
 .env*.local
 token.json

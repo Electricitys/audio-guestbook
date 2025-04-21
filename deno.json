@@ -1,9 +1,8 @@
 {
   "tasks": {
-    "dev:console": "cd apps/gb-console && pnpm run dev",
-    "dev:player": "cd apps/gb-player && deno task dev",
-    "dev:player:compile": "cd apps/gb-player && deno task compile",
-    "dev:counter": "deno run -A --unstable-kv --watch counter.ts"
+    "compile": "deno task compile:console && deno task compile:player",
+    "compile:player": "deno compile -A -o target/gb-player apps/gb-player/main.ts",
+    "compile:console": "cd apps/gb-console && pnpm build"
   },
   "nodeModulesDir": "auto",
   "imports": {
