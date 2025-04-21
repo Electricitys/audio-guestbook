@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import nodepath from "node:path";
 import { Upload } from "npm:tus-js-client";
+import { ConfigProps } from "./config-db.ts";
 
 type AudioFileStatus =
   | "recording"
@@ -24,10 +25,21 @@ type AudioFile = {
 export class AudioFileManager {
   private db: DatabaseSync;
   private isSyncing: boolean = false;
+  public lastSync: Date | null = null;
 
-  constructor() {
+  private config: ConfigProps;
+
+  constructor(config: ConfigProps) {
     this.db = new DatabaseSync("./audio.db");
     this.setup();
+    this.config = config;
+  }
+
+  get serverUrl() {
+    return (
+      this.config.get("FILE_SERVER_URL") ||
+      (Deno.env.get("FILE_SERVER_URL") as string)
+    );
   }
 
   private setup = () => {
@@ -73,13 +85,7 @@ export class AudioFileManager {
     }
 
     const result = this.db
-      .prepare(
-        `
-      UPDATE recorders
-      SET ${fields}
-      WHERE id = ?;
-    `
-      )
+      .prepare(`UPDATE recorders SET ${fields} WHERE id = ?;`)
       .run(...values, id);
 
     if (result.changes === 0) {
@@ -94,7 +100,7 @@ export class AudioFileManager {
 
   public listFiles = (): AudioFile[] => {
     const files = this.db
-      .prepare(`SELECT * FROM recorders`)
+      .prepare(`SELECT *, datetime(time, 'localtime') as time FROM recorders`)
       .all() as AudioFile[];
 
     return files.map((file) => {
@@ -127,6 +133,7 @@ export class AudioFileManager {
       }
     }
     this.isSyncing = false;
+    this.lastSync = new Date();
     return files;
   };
 
@@ -135,7 +142,7 @@ export class AudioFileManager {
 
     const upload = await new Promise<Upload>((resolve, reject) => {
       const u = new Upload(fileBuffer, {
-        endpoint: "http://ag-store.185131101.xyz/api/upload",
+        endpoint: `${this.serverUrl}/api/upload`,
         retryDelays: [0, 3000, 5000, 10000],
         metadata: {
           folder: "from-deno",
@@ -160,5 +167,15 @@ export class AudioFileManager {
     });
 
     return upload;
+  };
+
+  public testConnection = async (
+    url: string
+  ): Promise<{
+    status: string | "OK";
+    uptime: number;
+  }> => {
+    const conn = await fetch(`${url}/api/health`);
+    return await conn.json();
   };
 }

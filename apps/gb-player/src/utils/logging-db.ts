@@ -3,7 +3,31 @@ import { Level, LogRecord } from "jsr:@onjara/optic/logger";
 import { TokenReplacer } from "jsr:@onjara/optic/formatters";
 import { BaseStream } from "@onjara/optic";
 
-type LogType = "trace" | "info" | "error" | "warn" | "debug" | "critical";
+export type LogType =
+  | "trace"
+  | "info"
+  | "error"
+  | "warn"
+  | "debug"
+  | "critical";
+
+export type LogProps = {
+  id: number;
+  time: Date;
+  message: string;
+  type: LogType;
+};
+
+export const connection = new DatabaseSync("./logger.db");
+
+connection.exec(`
+  CREATE TABLE IF NOT EXISTS logger (
+    id      INTEGER       PRIMARY KEY AUTOINCREMENT,
+    time    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    message TEXT          NOT NULL,
+    type    TEXT CHECK(type IN ('trace','info','error','warn','debug','critical'))  NOT NULL DEFAULT 'info'
+  );
+`);
 
 const ParseType: Record<Level, LogType> = {
   10: "trace",
@@ -19,20 +43,11 @@ export class LoggingStream extends BaseStream {
 
   constructor() {
     super(new TokenReplacer().withColor());
-    this.db = new DatabaseSync("./logger.db");
+    this.db = connection;
   }
 
   override setup(): void {
     super.setup();
-
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS logger (
-        id      INTEGER       PRIMARY KEY AUTOINCREMENT,
-        time    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-        message TEXT          NOT NULL,
-        type    TEXT CHECK(type IN ('trace','info','error','warn','debug','critical'))  NOT NULL DEFAULT 'info'
-      );
-    `);
   }
 
   override destroy(): void {

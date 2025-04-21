@@ -1,6 +1,7 @@
 import { execSync, spawn } from "node:child_process";
 import * as path from "node:path";
 import * as os from "node:os";
+import { ConfigProps } from "./utils/config-db.ts";
 
 interface AudioPlayerOptions {
   playerPath?: string;
@@ -17,13 +18,15 @@ export class AudioPlayer {
   private outputDevice: string | null;
   private defaultVolume: number;
   private currentProcess: ReturnType<typeof spawn> | null = null;
+  private config: ConfigProps;
 
-  constructor({
-    deviceName = null,
-    defaultVolume = 100,
-  }: AudioPlayerOptions = {}) {
+  constructor(
+    config: ConfigProps,
+    { deviceName = null, defaultVolume = 100 }: AudioPlayerOptions = {}
+  ) {
     this.outputDevice = deviceName;
     this.defaultVolume = defaultVolume;
+    this.config = config;
   }
 
   play(filePath: string): Promise<void> {

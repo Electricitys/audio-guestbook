@@ -1,10 +1,17 @@
 import { Application, Router } from "jsr:@oak/oak";
 import { AudioPlayer } from "./speaker.ts";
 import { AudioRecorder } from "./recorder.ts";
-import { audioFileManager, audioPlayer, audioRecorder } from "./audio.ts";
+import {
+  audioFileManager,
+  audioPlayer,
+  audioRecorder,
+  config,
+} from "./audio.ts";
 import { apiFiles } from "./routes/api/files.ts";
 import process from "node:process";
-import { AudioFileManager } from "./utils/audio-file-manager.ts";
+import { oakCors } from "cors";
+import { apiLogs, apiLogsClean } from "./routes/api/logs.ts";
+import { AvailableConfigKey } from "./utils/config-db.ts";
 
 const router = new Router();
 
@@ -17,7 +24,7 @@ router.get("/api/health", (ctx) => {
     uptime: process.uptime(),
     uid: Deno.uid(),
     memory_usage: Deno.memoryUsage(),
-    last_sync: new Date(),
+    last_sync: audioFileManager.lastSync,
   };
 });
 
@@ -67,8 +74,40 @@ router.get("/api/files", async (ctx) => {
   ctx.response.body = await apiFiles();
 });
 
+router.get("/api/logs", async (ctx) => {
+  ctx.response.body = await apiLogs();
+});
+
+router.get("/api/logs/clean", async (ctx) => {
+  await apiLogsClean();
+  ctx.response.body = {
+    message: "OK",
+  };
+});
+
+router.get("/api/server_connection_test", async (ctx) => {
+  const serverUrl = ctx.request.url.searchParams.get("url") as string;
+  ctx.response.body = await audioFileManager.testConnection(serverUrl);
+});
+
+router.post("/api/settings", async (ctx) => {
+  const body = await ctx.request.body.json();
+  for (const [key, value] of Object.entries(body)) {
+    await config.set(key as AvailableConfigKey, value as string);
+  }
+  ctx.response.body = {
+    message: "OK",
+  };
+});
+
+router.get("/api/settings", async (ctx) => {
+  const body = await config.list();
+  ctx.response.body = body;
+});
+
 const rest = new Application();
 
+rest.use(oakCors());
 rest.use(router.routes());
 rest.use(router.allowedMethods());
 
