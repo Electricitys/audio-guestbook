@@ -45,9 +45,9 @@ function setFunc(db: DatabaseSync) {
 function getFunc(db: DatabaseSync) {
   return function (key: AvailableConfigKey) {
     const values = db
-      .prepare(`SELECT value FROM config WHERE key == ?`)
-      .all(key);
-    return (values[0] as string) || null;
+      .prepare(`SELECT value FROM config WHERE key == '${key}';`)
+      .all() as { value: string }[];
+    return (values[0].value as string) || null;
   };
 }
 
