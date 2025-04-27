@@ -1,6 +1,8 @@
 {
   "imports": {
+    "@deno-library/compress": "jsr:@deno-library/compress@^0.5.6",
     "@oak/oak": "jsr:@oak/oak@^17.1.4",
+    "@std/cli": "jsr:@std/cli@^1.0.17",
     "cors": "https://deno.land/x/cors/mod.ts",
     "@onjara/optic": "jsr:@onjara/optic@^2.0.3",
     "@std/assert": "jsr:@std/assert@1",
