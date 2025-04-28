@@ -9,7 +9,7 @@ import moment from "moment";
 import { Skeleton } from "../ui/skeleton";
 
 export const DeviceStatus = () => {
-  const client = useClient();
+  const client = useClient(true);
 
   const { data, isLoading } = useQuery<SystemHealthResponse>({
     queryKey: ["system-health"],

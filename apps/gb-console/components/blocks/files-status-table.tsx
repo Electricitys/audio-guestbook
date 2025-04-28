@@ -156,11 +156,11 @@ export const columns: ColumnDef<FileItem>[] = [
 ];
 
 export function FilesStatusTable() {
-  const client = useClient();
+  const client = useClient(true);
   const [isSyncing, { open: syncStart, close: syncStop }] =
     useDisclosure(false);
 
-  const { data, isLoading } = useQuery<FileItem[]>({
+  const { data, refetch, isLoading } = useQuery<FileItem[]>({
     queryKey: ["file-status", "file-status-table"],
     queryFn: async () => {
       return await client.file_collection.list();
@@ -170,6 +170,7 @@ export function FilesStatusTable() {
   const handleSync = async () => {
     await syncStart();
     await client.file_collection.sync();
+    await refetch();
     await syncStop();
   };
 

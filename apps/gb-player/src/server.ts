@@ -9,7 +9,7 @@ import {
 } from "./audio.ts";
 import { apiFiles } from "./routes/api/files.ts";
 import process from "node:process";
-import { oakCors } from "cors";
+import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { apiLogs, apiLogsClean } from "./routes/api/logs.ts";
 import { AvailableConfigKey } from "./utils/config-db.ts";
 
@@ -107,7 +107,14 @@ router.get("/api/settings", async (ctx) => {
 
 const rest = new Application();
 
-rest.use(oakCors());
+rest.use(
+  oakCors({
+    origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  })
+);
 rest.use(router.routes());
 rest.use(router.allowedMethods());
 

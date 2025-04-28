@@ -76,7 +76,7 @@ export const columns: ColumnDef<SystemLog>[] = [
 ];
 
 export function LoggerTable() {
-  const client = useClient();
+  const client = useClient(true);
 
   const { data, refetch, isFetching } = useQuery<SystemLog[]>({
     queryKey: ["log-table"],

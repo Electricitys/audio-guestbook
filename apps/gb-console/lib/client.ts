@@ -1,3 +1,6 @@
+"use client";
+
+import React from "react";
 import CONSTANTS from "./constants";
 
 export const createClient = (baseUrl: string) => {
@@ -6,6 +9,10 @@ export const createClient = (baseUrl: string) => {
       health: systemHealth(baseUrl),
       logs: systemLogs(baseUrl),
       test_connection: testServerConnection(baseUrl),
+      settings: {
+        get: getSettings(baseUrl),
+        post: postSettings(baseUrl),
+      },
     },
     file_collection: {
       list: getFiles(baseUrl),
@@ -95,6 +102,34 @@ const syncFiles = (baseUrl: string) => async () => {
   return data;
 };
 
+const postSettings =
+  (baseUrl: string) =>
+  async (payload: {
+    FILE_SERVER_URL: string;
+    TARGET_DIR: string;
+    OUTPUT_VOLUME: number;
+  }) => {
+    const response = await fetch(`${baseUrl}/api/settings`, {
+      method: "post",
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  };
+const getSettings = (baseUrl: string) => async () => {
+  const response = await fetch(`${baseUrl}/api/settings`, {
+    method: "get",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  return data;
+};
+
 const testServerConnection = (baseUrl: string) => async (url: string) => {
   const response = await fetch(
     `${baseUrl}/api/server_connection_test?url=${url}`
@@ -106,7 +141,12 @@ const testServerConnection = (baseUrl: string) => async (url: string) => {
   return data;
 };
 
-export const useClient = () => {
-  const clientInstance = createClient(CONSTANTS.SERVER_URL);
+export const useClient = (isAbsoluteURL: boolean = false) => {
+  const clientInstance = React.useMemo(() => {
+    const SERVER_URL = new URL(CONSTANTS.SERVER_URL);
+    if (typeof window !== "undefined" && isAbsoluteURL)
+      SERVER_URL.hostname = window.location.hostname;
+    return createClient(SERVER_URL.origin);
+  }, [isAbsoluteURL]);
   return clientInstance;
 };

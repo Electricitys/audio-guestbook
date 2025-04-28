@@ -18,6 +18,7 @@ import {
 import { useClient } from "@/lib/client";
 import React from "react";
 import { CheckIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 const SCHEMA = z.object({
   FILE_SERVER_URL: z.string().min(3, {
@@ -29,22 +30,31 @@ const SCHEMA = z.object({
   OUTPUT_VOLUME: z.number(),
 });
 
-export const SettingsForm = () => {
-  const client = useClient();
+export const SettingsFormContents = ({
+  defaultValues,
+}: {
+  defaultValues: z.infer<typeof SCHEMA>;
+}) => {
+  const client = useClient(true);
   const [testing, setTesting] = React.useState<
     null | "fetching" | "ok" | "error"
   >(null);
   const form = useForm<z.infer<typeof SCHEMA>>({
     resolver: zodResolver(SCHEMA),
     defaultValues: {
-      FILE_SERVER_URL: "",
-      TARGET_DIRECTORY: "",
-      OUTPUT_VOLUME: 50,
+      FILE_SERVER_URL: defaultValues.FILE_SERVER_URL || "",
+      TARGET_DIRECTORY: defaultValues.TARGET_DIRECTORY || "",
+      OUTPUT_VOLUME: defaultValues.OUTPUT_VOLUME || 50,
     },
   });
 
-  function onSubmit(values: z.infer<typeof SCHEMA>) {
+  async function onSubmit(values: z.infer<typeof SCHEMA>) {
     console.log(values);
+    await client.system.settings.post({
+      FILE_SERVER_URL: values.FILE_SERVER_URL,
+      TARGET_DIR: values.TARGET_DIRECTORY,
+      OUTPUT_VOLUME: values.OUTPUT_VOLUME,
+    });
   }
 
   async function handleConnection(value: string) {
@@ -120,23 +130,65 @@ export const SettingsForm = () => {
             />
           </div>
           <div>
-            <Label htmlFor="form-volume-level" className="mb-2">
-              Volume Level
-            </Label>
-            <Slider
-              id="form-volume-level"
-              defaultValue={[50]}
-              step={1}
-              min={0}
-              max={100}
-              className="w-auto"
+            <FormField
+              control={form.control}
+              name="OUTPUT_VOLUME"
+              render={({ field }) => (
+                <FormItem>
+                  <Label htmlFor="form-volume-level" className="mb-2">
+                    Volume Level
+                  </Label>
+                  <Slider
+                    id="form-volume-level"
+                    defaultValue={[50]}
+                    onValueChange={(value) => field.onChange(value[0])}
+                    step={1}
+                    min={0}
+                    max={100}
+                    className="w-auto"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
           <div>
-            <Button type="submit">Save Settings</Button>
+            <Button type="submit" loading={form.formState.isSubmitting}>
+              Save Settings
+            </Button>
           </div>
         </div>
       </form>
     </Form>
+  );
+};
+
+export const SettingsForm = () => {
+  const client = useClient(true);
+  const { data, isLoading } = useQuery({
+    refetchOnWindowFocus: false,
+    queryKey: ["settings-form"],
+    queryFn: async () => {
+      const res = await client.system.settings.get();
+      return {
+        FILE_SERVER_URL: res.FILE_SERVER_URL,
+        OUTPUT_VOLUME: Number(res.OUTPUT_VOLUME),
+        TARGET_DIRECTORY: res.TARGET_DIR,
+      };
+    },
+  });
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <SettingsFormContents
+      defaultValues={{
+        FILE_SERVER_URL: data?.FILE_SERVER_URL,
+        OUTPUT_VOLUME: data?.OUTPUT_VOLUME as number,
+        TARGET_DIRECTORY: data?.TARGET_DIRECTORY,
+      }}
+    />
   );
 };
