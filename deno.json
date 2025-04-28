@@ -2,13 +2,12 @@
   "tasks": {
     "compile": "deno task compile:console && deno task compile:player",
     "compile:player": "deno compile -A -o target/gb-player apps/gb-player/main.ts",
-    "compile:console": "cd apps/gb-console && pnpm build"
+    "compile:console": "cd apps/gb-console && pnpm build",
+    "compile:serve": "deno compile -A --target aarch64-unknown-linux-gnu -o dist/target/gb-serve npm:serve"
   },
   "nodeModulesDir": "auto",
   "imports": {
-    "@libsql/client": "npm:@libsql/client@^0.15.3",
     "@std/assert": "jsr:@std/assert@1"
   },
-  "unstable": ["unsafe-proto"],
-  "workspace": ["./apps/gb-player"]
+  "unstable": ["unsafe-proto"]
 }

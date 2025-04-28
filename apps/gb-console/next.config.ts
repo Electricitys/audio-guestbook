@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: "standalone",
+  output: "export",
+  // output: "standalone",
   // devIndicators: false,
   env: {
     SERVER_URL: process.env.SERVER_URL,
