@@ -18,7 +18,7 @@ import {
 } from "../ui/accordion";
 import { cx } from "class-variance-authority";
 
-export const renderMenuItem = (item: MenuItem) => {
+export const RenderMenuItem = (item: MenuItem) => {
   const pathname = usePathname();
 
   if (item.items) {

@@ -19,7 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants";
-import { renderMenuItem, renderMobileMenuItem } from "./navbar-item";
+import { RenderMenuItem, renderMobileMenuItem } from "./navbar-item";
 
 export interface MenuItem {
   title: string;
@@ -100,7 +100,7 @@ const Navbar = ({
             <div className="flex items-center">
               <NavigationMenu>
                 <NavigationMenuList>
-                  {menu.map((item) => renderMenuItem(item))}
+                  {menu.map((item) => RenderMenuItem(item))}
                 </NavigationMenuList>
               </NavigationMenu>
             </div>

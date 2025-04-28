@@ -20,8 +20,9 @@ function Progress({ className, value, ...props }: ProgressProps) {
       )}
       {...props}
     >
-      {value.map(([start, end]) => (
+      {value.map(([start, end], idx) => (
         <ProgressPrimitive.Indicator
+          key={idx}
           data-slot="progress-indicator"
           className="bg-primary h-full w-full flex-1 transition-all"
           style={{ transform: `translateX(-${end - (start || 0)}%)` }}
