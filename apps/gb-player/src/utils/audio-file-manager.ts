@@ -30,7 +30,7 @@ export class AudioFileManager {
   private config: ConfigProps;
 
   constructor(config: ConfigProps) {
-    this.db = new DatabaseSync("./audio.db");
+    this.db = new DatabaseSync("./dist/audio.db");
     this.setup();
     this.config = config;
   }
@@ -98,6 +98,17 @@ export class AudioFileManager {
     return fileExists;
   };
 
+  public remoteFiles = async () => {
+    const files = await fetch(`${this.serverUrl}/api/files`);
+    return (await files.json()) as {
+      id: string;
+      type: "file" | "folder";
+      size: number;
+      parentPath: string;
+      creation_date: Date;
+    }[];
+  };
+
   public listFiles = (): AudioFile[] => {
     const files = this.db
       .prepare(`SELECT *, datetime(time, 'localtime') as time FROM recorders`)
@@ -111,7 +122,7 @@ export class AudioFileManager {
     });
   };
 
-  public syncFiles = async () => {
+  public syncFiles = async (force: boolean = false) => {
     if (this.isSyncing) throw new Error("Wait for Sync process.");
     const files = this.listFiles().filter((file) =>
       ["success", "uploading"].indexOf(file.status)
@@ -139,13 +150,14 @@ export class AudioFileManager {
 
   public syncFile = async (file: AudioFile) => {
     const fileBuffer = fs.createReadStream(file.path); // Read the file as a buffer
+    const folder = this.config.get("TARGET_DIR") || "from-deno";
 
     const upload = await new Promise<Upload>((resolve, reject) => {
       const u = new Upload(fileBuffer, {
         endpoint: `${this.serverUrl}/api/upload`,
         retryDelays: [0, 3000, 5000, 10000],
         metadata: {
-          folder: "from-deno",
+          folder: folder,
           filename: file.name,
           name: file.name,
           type: "audio/wave",
@@ -154,10 +166,10 @@ export class AudioFileManager {
           reject(error as Error);
           throw error;
         },
-        onProgress(bytesUploaded, bytesTotal) {
-          const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-          console.log(file.name, bytesUploaded, bytesTotal, `${percentage}%`);
-        },
+        // onProgress(bytesUploaded, bytesTotal) {
+        //   const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+        //   // console.log(file.name, bytesUploaded, bytesTotal, `${percentage}%`);
+        // },
         onSuccess() {
           resolve(u);
           console.log("Upload finished:", u.url);

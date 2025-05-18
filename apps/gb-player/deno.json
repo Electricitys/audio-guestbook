@@ -1,23 +1,26 @@
 {
   "imports": {
     "@deno-library/compress": "jsr:@deno-library/compress@^0.5.6",
+    "@emarti/gpiopins": "jsr:@emarti/gpiopins@^1.0.2",
+    "@lib/debounce": "./src/lib/debounce/mod.ts",
+    "@lib/gpio": "./src/lib/gpio/mod.ts",
     "@oak/oak": "jsr:@oak/oak@^17.1.4",
-    "@std/cli": "jsr:@std/cli@^1.0.17",
-    "cors": "https://deno.land/x/cors@v1.2.2/mod.ts",
     "@onjara/optic": "jsr:@onjara/optic@^2.0.3",
     "@std/assert": "jsr:@std/assert@1",
+    "@std/cli": "jsr:@std/cli@^1.0.17",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
     "@types/fluent-ffmpeg": "npm:@types/fluent-ffmpeg@^2.1.27",
+    "cors": "https://deno.land/x/cors@v1.2.2/mod.ts",
     "ffmpeg-static": "npm:ffmpeg-static@^5.2.0",
     "fluent-ffmpeg": "npm:fluent-ffmpeg@^2.1.3",
     "nanoevents": "npm:nanoevents@^9.1.0",
     "tus-js-client": "npm:tus-js-client@^4.3.1"
   },
+  "nodeModulesDir": "auto",
   "tasks": {
-    "dev": "deno run -A --watch main.ts",
     "compile": "deno compile -A -o target/guestbook main.ts",
     "compile:arm": "deno compile -A --target aarch64-unknown-linux-gnu -o target/guestbook-linux-aarch64 main.ts",
-    "compile:linux": "deno compile -A --target x86_64-unknown-linux-gnu -o target/guestbook-linux-x86_64 main.ts"
-  },
-  "nodeModulesDir": "auto"
+    "compile:linux": "deno compile -A --target x86_64-unknown-linux-gnu -o target/guestbook-linux-x86_64 main.ts",
+    "dev": "deno run -A --watch main.ts"
+  }
 }

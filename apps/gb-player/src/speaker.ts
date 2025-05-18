@@ -1,7 +1,8 @@
-import { execSync, spawn } from "node:child_process";
+import { execSync } from "node:child_process";
 import * as path from "node:path";
 import * as os from "node:os";
 import { ConfigProps } from "./utils/config-db.ts";
+import { log } from "./utils/logging.ts";
 
 interface AudioPlayerOptions {
   playerPath?: string;
@@ -17,7 +18,7 @@ export interface AudioOutputDevice {
 export class AudioPlayer {
   private outputDevice: string | null;
   private defaultVolume: number;
-  private currentProcess: ReturnType<typeof spawn> | null = null;
+  private currentProcess: Deno.ChildProcess | null = null;
   private config: ConfigProps;
 
   constructor(
@@ -29,46 +30,62 @@ export class AudioPlayer {
     this.config = config;
   }
 
-  play(filePath: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.currentProcess) {
-        return reject(new Error("Audio is already playing."));
-      }
+  get isPlaying() {
+    return this.currentProcess !== null;
+  }
 
-      const absPath = path.resolve(filePath);
-      const platform = os.platform();
+  async play(filePath: string): Promise<void> {
+    if (this.currentProcess) {
+      throw new Error("Audio is already playing.");
+    }
 
-      const args = [
-        absPath,
-        "-q", // quiet mode
-      ];
+    const absPath = path.resolve(filePath);
+    const platform = os.platform();
 
-      if (platform === "win32") {
-        args.push("-t", "waveaudio");
-        args.push(this.outputDevice ?? "0");
-      } else {
-        args.push("-t", "alsa");
-        args.push(this.outputDevice ?? "default");
-      }
+    const args = [
+      absPath,
+      "-q", // quiet mode
+    ];
 
-      console.log("Running: sox", args.join(" "));
+    if (platform === "win32") {
+      args.push("-t", "waveaudio");
+      args.push(this.outputDevice ?? "0");
+    } else {
+      args.push("-t", "alsa");
+      args.push(this.outputDevice ?? "default");
+    }
 
-      this.currentProcess = spawn("sox", args, {
-        stdio: ["ignore", "inherit", "inherit"],
-      });
+    log.info(`Running: sox ${args.join(" ")}`);
 
-      this.currentProcess.on("exit", (code) => {
-        this.currentProcess = null;
-        code === 0
-          ? resolve()
-          : reject(new Error(`Playback exited with code ${code}`));
-      });
-
-      this.currentProcess.on("error", (err) => {
-        this.currentProcess = null;
-        reject(err);
-      });
+    const command = new Deno.Command("sox", {
+      args,
+      stdout: "inherit",
+      stderr: "inherit",
     });
+    const child = command.spawn();
+    this.currentProcess = child;
+    try {
+      const status = await child.status;
+      if (this.currentProcess != null && status.success) {
+        log.info("Playback complete.");
+      } else {
+        throw new Error(`Playback failed with code ${status.code}`);
+      }
+    } catch (err) {
+      throw err;
+    } finally {
+      this.currentProcess = null;
+    }
+  }
+
+  stop(): void {
+    if (this.currentProcess) {
+      this.currentProcess.kill("SIGTERM"); // Try to terminate nicely
+      this.currentProcess = null;
+      log.info("Playback stopped.");
+    } else {
+      log.warn("No audio is currently playing.");
+    }
   }
 
   static listDevices(): AudioOutputDevice[] {

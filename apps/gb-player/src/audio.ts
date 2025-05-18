@@ -14,6 +14,6 @@ export const audioPlayer = new AudioPlayer(config, {
 
 export const audioRecorder = new AudioRecorder({
   deviceName: Deno.env.get("PLAYER_INPUT_DEVICE") as string,
-  outputDir: path.join(Deno.cwd(), "recordings"),
+  outputDir: path.join(Deno.cwd(), "dist", "recordings"),
   audioFileManager: audioFileManager,
 });

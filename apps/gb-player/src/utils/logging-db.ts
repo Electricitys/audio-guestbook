@@ -18,7 +18,7 @@ export type LogProps = {
   type: LogType;
 };
 
-export const connection = new DatabaseSync("./logger.db");
+export const connection = new DatabaseSync("./dist/logger.db");
 
 connection.exec(`
   CREATE TABLE IF NOT EXISTS logger (

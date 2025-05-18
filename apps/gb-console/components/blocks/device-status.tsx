@@ -16,6 +16,7 @@ export const DeviceStatus = () => {
     queryFn: async () => {
       return await client.system.health();
     },
+    refetchInterval: 30000,
   });
 
   const isOnline = data?.status === "ok";

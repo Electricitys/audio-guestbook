@@ -6,6 +6,7 @@ const logStream = new LoggingStream();
 const consoleStream = new ConsoleStream();
 
 export const log = new Logger()
+  .withDedupe(true)
   .withMinLogLevel(Level.Debug)
   .addStream(logStream)
   .addStream(consoleStream);

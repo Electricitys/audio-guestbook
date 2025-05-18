@@ -1,5 +1,6 @@
 import "./src/utils/loadEnv.ts";
 
+import os from "node:os";
 import { audioRecorder } from "./src/audio.ts";
 import { launch } from "./src/phone-logic.ts";
 import rest from "./src/server.ts";
@@ -20,6 +21,10 @@ audioRecorder.emitter.on("error", ({ sessionId, err }) => {
 
 log.info(`Server Listen on: http://localhost:${PORT}`);
 
-launch();
+const PhoneLogic = async () => {
+  if (os.platform() === "linux") {
+    await launch();
+  }
+};
 
-rest.listen({ port: PORT });
+Promise.all([PhoneLogic(), rest.listen({ port: PORT })]);

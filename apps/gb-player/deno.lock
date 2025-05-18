@@ -3,6 +3,8 @@
   "specifiers": {
     "jsr:@deno-library/compress@~0.5.6": "0.5.6",
     "jsr:@deno-library/crc32@1.0.2": "1.0.2",
+    "jsr:@emarti/gpiopins@*": "1.0.2",
+    "jsr:@emarti/gpiopins@^1.0.2": "1.0.2",
     "jsr:@oak/commons@1": "1.0.0",
     "jsr:@oak/oak@*": "17.1.4",
     "jsr:@oak/oak@^17.1.4": "17.1.4",
@@ -55,6 +57,9 @@
     },
     "@deno-library/crc32@1.0.2": {
       "integrity": "d2061bfee30c87c97f285dfca0fdc4458e632dc072a33ecfc73ca5177a5a39a0"
+    },
+    "@emarti/gpiopins@1.0.2": {
+      "integrity": "002faeaaeff46131d3771fef0c82d94adde83f0a2c192b6e8876a88adca6611a"
     },
     "@oak/commons@1.0.0": {
       "integrity": "49805b55603c3627a9d6235c0655aa2b6222d3036b3a13ff0380c16368f607ac",
@@ -406,6 +411,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@deno-library/compress@~0.5.6",
+      "jsr:@emarti/gpiopins@^1.0.2",
       "jsr:@oak/oak@^17.1.4",
       "jsr:@onjara/optic@^2.0.3",
       "jsr:@std/assert@1",

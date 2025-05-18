@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 export type AvailableConfigKey =
   | "FILE_SERVER_URL"
   | "TARGET_DIR"
-  | "OUTPUT_DIR";
+  | "OUTPUT_VOLUME";
 
 const config = (dbname: string) => (): ConfigProps => {
   const db = new DatabaseSync(dbname);
@@ -18,7 +18,7 @@ const config = (dbname: string) => (): ConfigProps => {
   };
 };
 
-export default config("./config.db");
+export default config("./dist/config.db");
 
 export interface ConfigProps {
   set: (key: AvailableConfigKey, value: string) => void;
